@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  traxmate-bridge:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=development
+      - PORT=8080
+      - LOG_LEVEL=debug
+      # Add your actual API keys here for development
+      - CISCO_SPACES_ACCESS_TOKEN=${CISCO_SPACES_ACCESS_TOKEN}
+      - TRAXMATE_API_KEY=${TRAXMATE_API_KEY}
+      - CISCO_SPACES_FIREHOSE_URL=${CISCO_SPACES_FIREHOSE_URL}
+      - TRAXMATE_INGESTION_URL=${TRAXMATE_INGESTION_URL}
+    volumes:
+      - ./logs:/app/logs
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:8080/health', (res) => { process.exit(res.statusCode === 200 ? 0 : 1) })"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  # Optional: Add a mock service for testing
+  mock-cisco:
+    image: mockserver/mockserver
+    ports:
+      - "1080:1080"
+    environment:
+      MOCKSERVER_INITIALIZATION_JSON_PATH: /config/mock-cisco.json
+    volumes:
+      - ./test/mocks:/config
+    profiles:
+      - test 
